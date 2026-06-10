@@ -1,0 +1,156 @@
+{
+  "version": "3",
+  "templates": [
+    {
+      "id": 1,
+      "type": 3,
+      "title": "stCall",
+      "name": "stcall",
+      "description": "Plataforma de call center stCall: frontend Nuxt 3, servidor WebSocket para coordenação de agentes e eventos ARI do Asterisk, e banco de dados PostgreSQL. Integra com FreePBX/Asterisk (AMI, ARI, sincronização PJSIP, CDR) e suporta softphone WebRTC, gravações de chamadas, web push e backups S3.",
+      "note": "Preencha as variáveis no formulário antes do deploy. Requer a rede externa 'traefik-public' e um servidor FreePBX/Asterisk acessível. Deixar S3_ENDPOINT vazio desativa os backups S3.",
+      "categories": [
+        "Comunicação",
+        "VoIP"
+      ],
+      "platform": "linux",
+      "logo": "",
+      "repository": {
+        "url": "https://github.com/CHANGE_ME_ORG/SupranetPortainerTemplates",
+        "stackfile": "stcall/stcall.yml"
+      },
+      "maintainer": "jorge.assis@raio.dev",
+      "env": [
+        {
+          "name": "STCALL_REGISTRY",
+          "label": "Registry das imagens Docker",
+          "description": "Ex.: registry.exemplo.com.br (sem barra no final)"
+        },
+        {
+          "name": "APP_DOMAIN",
+          "label": "Domínio do frontend",
+          "description": "Ex.: stcall.exemplo.com.br — usado no Traefik e na APP_URL"
+        },
+        {
+          "name": "WS_DOMAIN",
+          "label": "Domínio do servidor WebSocket",
+          "description": "Ex.: stcall-ws.exemplo.com.br — usado no Traefik"
+        },
+        {
+          "name": "ASTERISK_HOST",
+          "label": "Host do Asterisk/FreePBX",
+          "description": "IP ou hostname. Também usado na FBQ_URL (porta 8080)"
+        },
+        {
+          "name": "ASTERISK_USERNAME",
+          "label": "Usuário AMI/ARI do Asterisk"
+        },
+        {
+          "name": "ASTERISK_PASSWORD",
+          "label": "Senha AMI/ARI do Asterisk"
+        },
+        {
+          "name": "JWT_SECRET",
+          "label": "Segredo JWT",
+          "description": "Valor longo e aleatório. Gere com: openssl rand -hex 32"
+        },
+        {
+          "name": "SIP_ENCRYPTION_KEY",
+          "label": "Chave de criptografia das senhas SIP",
+          "description": "Gere com: openssl rand -hex 32"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "label": "Senha do PostgreSQL",
+          "description": "Usuário stcall_admin, banco interno da stack"
+        },
+        {
+          "name": "FREEPBX_DB_HOST",
+          "label": "Host do MySQL do FreePBX"
+        },
+        {
+          "name": "FREEPBX_DB_USER",
+          "label": "Usuário do MySQL do FreePBX",
+          "description": "Acesso aos bancos asterisk e asteriskcdrdb"
+        },
+        {
+          "name": "FREEPBX_DB_PASSWORD",
+          "label": "Senha do MySQL do FreePBX"
+        },
+        {
+          "name": "RECORDINGS_BASE_URL",
+          "label": "URL base das gravações de chamadas"
+        },
+        {
+          "name": "WEBRTC_WSS_URL",
+          "label": "URL WSS do WebRTC",
+          "description": "Ex.: wss://pbx.exemplo.com.br:8089/ws"
+        },
+        {
+          "name": "WEBRTC_DOMAIN",
+          "label": "Domínio SIP do WebRTC"
+        },
+        {
+          "name": "VAPID_PUBLIC_KEY",
+          "label": "Chave pública VAPID (web push)"
+        },
+        {
+          "name": "VAPID_PRIVATE_KEY",
+          "label": "Chave privada VAPID (web push)"
+        },
+        {
+          "name": "VAPID_SUBJECT",
+          "label": "Contato VAPID",
+          "default": "mailto:admin@seudominio.com.br"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "label": "Chave da API OpenAI"
+        },
+        {
+          "name": "RESEND_API_KEY",
+          "label": "Chave da API Resend (e-mail)"
+        },
+        {
+          "name": "MAIL_FROM",
+          "label": "Remetente dos e-mails",
+          "default": "stCall <noreply@seudominio.com.br>"
+        },
+        {
+          "name": "IVR_EXECUTE_SECRET",
+          "label": "Segredo das ações de IVR"
+        },
+        {
+          "name": "S3_ENDPOINT",
+          "label": "S3: endpoint",
+          "description": "Vazio desativa os backups S3",
+          "default": ""
+        },
+        {
+          "name": "S3_ACCESS_KEY",
+          "label": "S3: access key",
+          "default": ""
+        },
+        {
+          "name": "S3_SECRET_KEY",
+          "label": "S3: secret key",
+          "default": ""
+        },
+        {
+          "name": "S3_REGION",
+          "label": "S3: região",
+          "default": ""
+        },
+        {
+          "name": "S3_BUCKET_DB",
+          "label": "S3: bucket do banco de dados",
+          "default": ""
+        },
+        {
+          "name": "S3_BUCKET_RECORDINGS",
+          "label": "S3: bucket das gravações",
+          "default": ""
+        }
+      ]
+    }
+  ]
+}

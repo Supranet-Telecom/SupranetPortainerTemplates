@@ -1,0 +1,244 @@
+# =============================================================================
+# stCall - Stack Docker Compose para Portainer
+# =============================================================================
+# Implantado via App Template do Portainer (templates.json na raiz do repo).
+# Os valores ${VAR} são preenchidos pelo formulário do template no deploy.
+#
+# Deploy manual (fora do template):
+#   1. Crie um arquivo .env com todas as variáveis ${VAR} deste arquivo
+#   2. docker compose --env-file .env up -d
+#      (ou Stacks > Add stack no Portainer, definindo as variáveis na
+#      seção Environment variables)
+#
+# Pré-requisitos:
+#   - Imagens publicadas no registry (${STCALL_REGISTRY})
+#   - Rede externa 'traefik-public' existente
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # stCall Frontend (Nuxt 3 Application)
+  # ---------------------------------------------------------------------------
+  stcall-app:
+    image: ${STCALL_REGISTRY}/stcall-app:latest
+    container_name: stcall-app
+    restart: unless-stopped
+    networks:
+      - stcall-network
+      - traefik-public
+    environment:
+      - NODE_ENV=production
+
+      # =======================================================================
+      # Nuxt 3 Runtime Config Override
+      # =======================================================================
+      # Nuxt 3 uses NUXT_* prefix for server-side config and NUXT_PUBLIC_*
+      # for client-side (public) config.
+      # =======================================================================
+
+      # Private config (server-side only)
+      - NUXT_ASTERISK_USERNAME=${ASTERISK_USERNAME}
+      - NUXT_ASTERISK_PASSWORD=${ASTERISK_PASSWORD}
+
+      # Public config (exposed to client)
+      - NUXT_PUBLIC_ASTERISK_HOST=${ASTERISK_HOST}
+      - NUXT_PUBLIC_ASTERISK_AMI_PORT=5038
+      - NUXT_PUBLIC_ASTERISK_ARI_PORT=8088
+      - NUXT_PUBLIC_ASTERISK_WS_PORT=8088
+      - NUXT_PUBLIC_API_BASE_URL=http://stcall-ws:3001
+      - NUXT_PUBLIC_WS_URL=ws://stcall-ws:3001
+
+      # Web Push (VAPID)
+      - NUXT_PUBLIC_VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+
+      # WebRTC Configuration
+      - NUXT_PUBLIC_WEBRTC_WSS_URL=${WEBRTC_WSS_URL}
+      - NUXT_PUBLIC_WEBRTC_DOMAIN=${WEBRTC_DOMAIN}
+      - NUXT_PUBLIC_WEBRTC_STUN_SERVER=stun:stun.l.google.com:19302
+      - NUXT_PUBLIC_WEBRTC_TURN_SERVER=turn:openrelay.metered.ca:80,turn:openrelay.metered.ca:443,turns:openrelay.metered.ca:443
+      - NUXT_PUBLIC_WEBRTC_TURN_USERNAME=openrelayproject
+      - NUXT_PUBLIC_WEBRTC_TURN_PASSWORD=openrelayproject
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.stcall-app.rule=Host(`${APP_DOMAIN}`)
+      - traefik.http.routers.stcall-app.entrypoints=websecure
+      - traefik.http.routers.stcall-app.tls=true
+      - traefik.http.routers.stcall-app.tls.certresolver=letsencrypt
+      - traefik.http.services.stcall-app.loadbalancer.server.port=3000
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      stcall-ws:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # stCall WebSocket Server (Agent Coordination & ARI Events)
+  # ---------------------------------------------------------------------------
+  stcall-ws:
+    image: ${STCALL_REGISTRY}/stcall-ws:latest
+    container_name: stcall-ws
+    restart: unless-stopped
+    networks:
+      - stcall-network
+      - traefik-public
+    environment:
+      - NODE_ENV=production
+
+      # Asterisk ARI Configuration
+      - ASTERISK_HOST=${ASTERISK_HOST}
+      - ASTERISK_PORT=8088
+      - ASTERISK_USERNAME=${ASTERISK_USERNAME}
+      - ASTERISK_PASSWORD=${ASTERISK_PASSWORD}
+      - ASTERISK_APP_NAME=stCall
+
+      # JWT Configuration
+      - JWT_SECRET=${JWT_SECRET}
+
+      # WebSocket Server Configuration
+      - WS_PORT=3001
+      - WS_HOST=0.0.0.0
+
+      # Logging
+      - LOG_LEVEL=INFO
+
+      # Connection Settings
+      - HEARTBEAT_INTERVAL=30000
+      - RECONNECT_MAX_DELAY=30000
+      - RECONNECT_INITIAL_DELAY=1000
+
+      # Security
+      - USE_TLS=false
+      # Trusted reverse proxy subnets for X-Forwarded-For resolution (e.g. traefik-public + internal app network)
+      - TRUSTED_PROXIES=
+
+      # PostgreSQL Database (stCall application data)
+      - DATABASE_URL=postgresql://stcall_admin:${DB_PASSWORD}@postgres:5432/stcall
+
+      # FreePBX MySQL Database (PJSIP endpoint synchronization)
+      - FREEPBX_DATABASE_URL=mysql://${FREEPBX_DB_USER}:${FREEPBX_DB_PASSWORD}@${FREEPBX_DB_HOST}:3306/asterisk
+
+      # CDR Database (Call Detail Records)
+      - CDR_DATABASE_URL=mysql://${FREEPBX_DB_USER}:${FREEPBX_DB_PASSWORD}@${FREEPBX_DB_HOST}:3306/asteriskcdrdb
+
+      # Recordings Configuration
+      - RECORDINGS_ENABLED=true
+      - RECORDINGS_BASE_URL=${RECORDINGS_BASE_URL}
+
+      # SIP Password Encryption Key (generate with: openssl rand -hex 32)
+      - SIP_ENCRYPTION_KEY=${SIP_ENCRYPTION_KEY}
+
+      # FreePBX GraphQL API (optional - for extension management)
+      - FREEPBX_TOKEN_URL=
+      - FREEPBX_GRAPHQL_API_URL=
+      - FREEPBX_CLIENT_ID=
+      - FREEPBX_CLIENT_SECRET=
+
+      # Filebrowser Quantum (FBQ) — filesystem access to the FreePBX VM (system recordings)
+      - FBQ_URL=http://${ASTERISK_HOST}:8080
+      - FBQ_TOKEN=
+      - FBQ_SOURCE=asterisk
+      - FBQ_SOURCE_CONF=asterisk-conf
+
+      # Web Push (VAPID)
+      # Generate keys inside the container: bun -e "const c=require('crypto').createECDH('prime256v1');c.generateKeys();console.log(c.getPublicKey().toString('base64url'));console.log(c.getPrivateKey().toString('base64url'))"
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_SUBJECT=${VAPID_SUBJECT}
+
+      # OpenAI
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+      # E-mail Transacional (Resend)
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - MAIL_FROM=${MAIL_FROM}
+      - APP_URL=https://${APP_DOMAIN}
+
+      # Integrações — Hubsoft (desativado por padrão)
+      #- HUBSOFT_API_URL=
+      #- HUBSOFT_CLIENT_ID=
+      #- HUBSOFT_CLIENT_SECRET=
+      #- HUBSOFT_USERNAME=
+      #- HUBSOFT_PASSWORD=
+
+      # Integrações — Synsuite/Elleven/Voalle
+      - ELLEVEN_API_URL=
+      - ELLEVEN_CLIENT_ID=
+      - ELLEVEN_CLIENT_SECRET=
+      - ELLEVEN_SYNDATA=
+
+      # Rate Limiting
+      - RATE_LIMIT_WS_MAX=30
+      - RATE_LIMIT_WS_WINDOW_MS=10000
+      - RATE_LIMIT_LOGIN_MAX=5
+      - RATE_LIMIT_LOGIN_WINDOW_MS=60000
+
+      # S3 Backup (optional — scheduler is disabled if S3_ENDPOINT is not set)
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_REGION=${S3_REGION}
+      - S3_BUCKET_DB=${S3_BUCKET_DB}
+      - S3_BUCKET_RECORDINGS=${S3_BUCKET_RECORDINGS}
+      - BACKUP_RETENTION_DAYS=30
+
+      # IVR Integration Actions
+      - IVR_EXECUTE_SECRET=${IVR_EXECUTE_SECRET}
+      - IVR_ALLOWED_IPS=
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.stcall-ws.rule=Host(`${WS_DOMAIN}`)
+      - traefik.http.routers.stcall-ws.entrypoints=websecure
+      - traefik.http.routers.stcall-ws.tls=true
+      - traefik.http.routers.stcall-ws.tls.certresolver=letsencrypt
+      - traefik.http.services.stcall-ws.loadbalancer.server.port=3001
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database (stCall Application Data)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: stcall-postgres
+    restart: unless-stopped
+    networks:
+      - stcall-network
+    environment:
+      - POSTGRES_DB=stcall
+      - POSTGRES_USER=stcall_admin
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stcall_admin -d stcall"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  stcall-network:
+    driver: bridge
+  traefik-public:
+    external: true
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres-data:
+    driver: local
