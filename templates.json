@@ -151,6 +151,37 @@
           "default": ""
         }
       ]
+    },
+    {
+      "id": 2,
+      "type": 1,
+      "title": "Traefik",
+      "name": "traefik",
+      "description": "Load balancer e proxy reverso com suporte a TLS via Let's Encrypt, autenticação básica para dashboard e roteamento baseado em labels Docker.",
+      "note": "Preencha as variáveis de rede antes do deploy. Requer a rede 'traefik-proxy' e um diretório 'acme.json' vazio com permissões 600.",
+      "categories": [
+        "Infraestrutura",
+        "Proxy"
+      ],
+      "platform": "linux",
+      "logo": "",
+      "repository": {
+        "url": "https://github.com/CHANGE_ME_ORG/SupranetPortainerTemplates",
+        "stackfile": "traefik/traefik.yml"
+      },
+      "maintainer": "jorge.assis@raio.dev",
+      "env": [
+        {
+          "name": "TRAEFIK_SUBNET",
+          "label": "Subnet da rede traefik-proxy",
+          "description": "Ex.: 10.0.0.0/24"
+        },
+        {
+          "name": "TRAEFIK_GATEWAY",
+          "label": "Gateway da rede traefik-proxy",
+          "description": "Ex.: 10.0.0.1"
+        }
+      ]
     }
   ]
 }

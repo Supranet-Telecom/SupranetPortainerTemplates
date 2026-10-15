@@ -1,0 +1,96 @@
+services:
+  traefik:
+    image: traefik
+    container_name: traefik
+    restart: unless-stopped
+    privileged: true
+    security_opt:
+      - no-new-privileges:true
+
+    networks:
+     # Connect to the 'traefik_proxy' overlay network for inter-container communication across nodes
+      - traefik_proxy
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/traefik/certs:/certs
+      - /etc/traefik/dynamic:/dynamic:ro
+      - /etc/traefik/acme.json:/acme.json
+
+    command:
+      # EntryPoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls=true"
+
+      # Attach the static configuration tls.yaml file that contains the tls configuration settings
+      # - "--providers.file.filename=/dynamic/tls.yaml"
+
+      # Providers 
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=traefik_proxy"
+
+      # API & Dashboard 
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+
+      # Observability 
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--metrics.prometheus=false"
+
+      # CertResolver
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=noc@supranet.com.br"
+      - "--certificatesresolvers.letsencrypt.acme.storage=./acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      
+      # Skip TLS
+      - "--serversTransport.insecureSkipVerify=true"
+
+  # Traefik Dynamic configuration via Docker labels
+    labels:
+      # Enable self‑routing
+      - "traefik.enable=true"
+
+      # Dashboard router
+      - "traefik.http.routers.dashboard.rule=Host(`{{ .url }}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+
+      # Basic‑auth middleware
+      - "traefik.http.middlewares.traefikAuth.basicAuth.users=supranet:$apr1$QqzXHUYU$NRGXM8RTo6rzAg3nf/fBX."
+      - "traefik.http.routers.dashboard.middlewares=traefikAuth"
+
+# Whoami application
+  whoami:
+    image: traefik/whoami
+    container_name: whoami
+    restart: unless-stopped
+    networks:
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls=true"
+
+networks:
+  traefik_proxy:
+    name: traefik_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: {{ .subnet }}
+          gateway: {{ .gateway }}
