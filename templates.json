@@ -7,7 +7,7 @@
       "title": "stCall",
       "name": "stcall",
       "description": "Plataforma de call center stCall: frontend Nuxt 3, servidor WebSocket para coordenação de agentes e eventos ARI do Asterisk, e banco de dados PostgreSQL. Integra com FreePBX/Asterisk (AMI, ARI, sincronização PJSIP, CDR) e suporta softphone WebRTC, gravações de chamadas, web push e backups S3.",
-      "note": "Preencha as variáveis no formulário antes do deploy. Requer a rede externa 'traefik-public' e um servidor FreePBX/Asterisk acessível. Deixar S3_ENDPOINT vazio desativa os backups S3.",
+      "note": "Preencha as variáveis no formulário antes do deploy. Requer a rede externa 'traefik_proxy' e um servidor FreePBX/Asterisk acessível. Deixar S3_ENDPOINT vazio desativa os backups S3.",
       "categories": [
         "Comunicação",
         "VoIP"
@@ -158,7 +158,7 @@
       "title": "Traefik",
       "name": "traefik",
       "description": "Load balancer e proxy reverso com suporte a TLS via Let's Encrypt, autenticação básica para dashboard e roteamento baseado em labels Docker.",
-      "note": "Preencha as variáveis de rede antes do deploy. Requer a rede 'traefik-proxy' e um diretório 'acme.json' vazio com permissões 600.",
+      "note": "Preencha as variáveis de rede antes do deploy. Requer a rede 'traefik_proxy' e um diretório 'acme.json' vazio com permissões 600.",
       "categories": [
         "Infraestrutura",
         "Proxy"
@@ -173,12 +173,12 @@
       "env": [
         {
           "name": "TRAEFIK_SUBNET",
-          "label": "Subnet da rede traefik-proxy",
+          "label": "Subnet da rede traefik_proxy",
           "description": "Ex.: 10.0.0.0/24"
         },
         {
           "name": "TRAEFIK_GATEWAY",
-          "label": "Gateway da rede traefik-proxy",
+          "label": "Gateway da rede traefik_proxy",
           "description": "Ex.: 10.0.0.1"
         }
       ]
