@@ -12,7 +12,7 @@
 #
 # Pré-requisitos:
 #   - Imagens publicadas no registry (${STCALL_REGISTRY})
-#   - Rede externa 'traefik-public' existente
+#   - Rede externa 'traefik_proxy' existente
 # =============================================================================
 
 services:
@@ -25,7 +25,7 @@ services:
     restart: unless-stopped
     networks:
       - stcall-network
-      - traefik-public
+      - traefik_proxy
     environment:
       - NODE_ENV=production
 
@@ -84,7 +84,7 @@ services:
     restart: unless-stopped
     networks:
       - stcall-network
-      - traefik-public
+      - traefik_proxy
     environment:
       - NODE_ENV=production
 
@@ -112,7 +112,7 @@ services:
 
       # Security
       - USE_TLS=false
-      # Trusted reverse proxy subnets for X-Forwarded-For resolution (e.g. traefik-public + internal app network)
+      # Trusted reverse proxy subnets for X-Forwarded-For resolution (e.g. traefik_proxy + internal app network)
       - TRUSTED_PROXIES=
 
       # PostgreSQL Database (stCall application data)
@@ -233,7 +233,7 @@ services:
 networks:
   stcall-network:
     driver: bridge
-  traefik-public:
+  traefik_proxy:
     external: true
 
 # =============================================================================
