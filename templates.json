@@ -15,7 +15,7 @@
       "platform": "linux",
       "logo": "",
       "repository": {
-        "url": "https://github.com/CHANGE_ME_ORG/SupranetPortainerTemplates",
+        "url": "https://github.com/Supranet-Telecom/SupranetPortainerTemplates",
         "stackfile": "stcall/stcall.yml"
       },
       "maintainer": "jorge.assis@raio.dev",
@@ -166,7 +166,7 @@
       "platform": "linux",
       "logo": "",
       "repository": {
-        "url": "https://github.com/CHANGE_ME_ORG/SupranetPortainerTemplates",
+        "url": "https://github.com/Supranet-Telecom/SupranetPortainerTemplates",
         "stackfile": "traefik/traefik.yml"
       },
       "maintainer": "jorge.assis@raio.dev",
