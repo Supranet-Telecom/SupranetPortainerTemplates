@@ -154,7 +154,7 @@
     },
     {
       "id": 2,
-      "type": 1,
+      "type": 3,
       "title": "Traefik",
       "name": "traefik",
       "description": "Load balancer e proxy reverso com suporte a TLS via Let's Encrypt, autenticação básica para dashboard e roteamento baseado em labels Docker.",
